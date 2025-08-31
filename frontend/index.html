@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumina Export Dashboard</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        .pulse { animation: pulse 2s infinite; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+        }
+        #root {
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+            <div style="text-align: center;">
+                <div style="font-size: 24px; color: #666;">Loading Dashboard...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Simple Icon Components
+        const DashboardIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+        );
+
+        const SettingsIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        );
+
+        const JobsIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+        );
+
+        const LogoutIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+        );
+
+        const PlusIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+        );
+
+        const RefreshIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        );
+
+        const MailIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const CheckIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+        );
+
+        const ClockIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        );
+
+        const PlayIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        );
+
+        const DownloadIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+        );
+
+        const SaveIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V2" />
+            </svg>
+        );
+
+        const EditIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+        );
+
+        const XIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+
+        // Main App Component
+        function App() {
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            const [email, setEmail] = useState('');
+            const [verificationCode, setVerificationCode] = useState('');
+            const [isVerifying, setIsVerifying] = useState(false);
+            const [notifications, setNotifications] = useState([]);
+
+            const handleEmailSubmit = (e) => {
+                e.preventDefault();
+                setIsVerifying(true);
+                setTimeout(() => {
+                    addNotification('Verification code sent to ' + email, 'success');
+                }, 1000);
+            };
+
+            const handleVerificationSubmit = (e) => {
+                e.preventDefault();
+                if (verificationCode === '123456') {
+                    setIsAuthenticated(true);
+                    addNotification('Successfully authenticated!', 'success');
+                } else {
+                    addNotification('Invalid verification code', 'error');
+                }
+            };
+
+            const addNotification = (message, type = 'info') => {
+                const id = Date.now();
+                setNotifications(prev => [...prev, { id, message, type }]);
+                setTimeout(() => {
+                    setNotifications(prev => prev.filter(n => n.id !== id));
+                }, 5000);
+            };
+
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full fade-in">
+                            <div className="text-center mb-8">
+                                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white">
+                                    <DownloadIcon />
+                                </div>
+                                <h2 className="text-3xl font-bold text-gray-800">Lumina Export</h2>
+                                <p className="text-gray-600 mt-2">Secure Dashboard Access</p>
+                            </div>
+
+                            {!isVerifying ? (
+                                <form onSubmit={handleEmailSubmit}>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Email Address
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                            placeholder="admin@company.com"
+                                            required
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition duration-200"
+                                    >
+                                        Send Verification Code
+                                    </button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleVerificationSubmit}>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Verification Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={verificationCode}
+                                            onChange={(e) => setVerificationCode(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition text-center text-2xl tracking-widest"
+                                            placeholder="000000"
+                                            maxLength="6"
+                                            required
+                                        />
+                                        <p className="text-sm text-gray-500 mt-2">
+                                            Enter the 6-digit code sent to {email}
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            (Demo: use 123456)
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition duration-200"
+                                    >
+                                        Verify & Login
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsVerifying(false)}
+                                        className="w-full mt-3 text-gray-600 hover:text-gray-800 transition"
+                                    >
+                                        Use different email
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                        <NotificationContainer notifications={notifications} />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <NotificationContainer notifications={notifications} />
+                    
+                    {/* Sidebar */}
+                    <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-40">
+                        <div className="p-6 gradient-bg text-white">
+                            <h1 className="text-2xl font-bold">Lumina Export</h1>
+                            <p className="text-sm opacity-90 mt-1">Dashboard v2.0</p>
+                        </div>
+                        
+                        <nav className="p-4">
+                            <MenuItem 
+                                icon={<DashboardIcon />} 
+                                label="Dashboard" 
+                                active={currentPage === 'dashboard'}
+                                onClick={() => setCurrentPage('dashboard')}
+                            />
+                            <MenuItem 
+                                icon={<JobsIcon />} 
+                                label="Jobs & Queue" 
+                                active={currentPage === 'jobs'}
+                                onClick={() => setCurrentPage('jobs')}
+                            />
+                            <MenuItem 
+                                icon={<SettingsIcon />} 
+                                label="Configuration" 
+                                active={currentPage === 'settings'}
+                                onClick={() => setCurrentPage('settings')}
+                            />
+                            <div className="border-t my-4"></div>
+                            <MenuItem 
+                                icon={<LogoutIcon />} 
+                                label="Logout" 
+                                onClick={() => {
+                                    setIsAuthenticated(false);
+                                    setIsVerifying(false);
+                                    setVerificationCode('');
+                                    addNotification('Logged out successfully', 'info');
+                                }}
+                            />
+                        </nav>
+
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <div className="bg-gray-100 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs text-gray-600">Server Status</span>
+                                    <span className="w-2 h-2 bg-green-500 rounded-full pulse"></span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                    CPU: 45% | RAM: 2.3GB
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="ml-64 min-h-screen">
+                        <div className="p-8">
+                            {currentPage === 'dashboard' && <DashboardPage addNotification={addNotification} />}
+                            {currentPage === 'jobs' && <JobsPage addNotification={addNotification} />}
+                            {currentPage === 'settings' && <SettingsPage addNotification={addNotification} />}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function MenuItem({ icon, label, active, onClick }) {
+            return (
+                <button
+                    onClick={onClick}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition duration-200 ${
+                        active 
+                            ? 'bg-purple-100 text-purple-700' 
+                            : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                >
+                    {icon}
+                    <span className="font-medium">{label}</span>
+                </button>
+            );
+        }
+
+        function DashboardPage({ addNotification }) {
+            const stats = {
+                totalJobs: 247,
+                successRate: 94.3,
+                avgProcessTime: 45,
+                activeJobs: 3
+            };
+
+            const recentJobs = [
+                { id: 1, name: 'Daily Report Export', status: 'completed', time: '2 min ago' },
+                { id: 2, name: 'Marketing Campaign Data', status: 'processing', time: '5 min ago' },
+                { id: 3, name: 'Q4 Performance Metrics', status: 'completed', time: '1 hour ago' },
+            ];
+
+            return (
+                <div className="fade-in">
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
+                        <p className="text-gray-600 mt-2">Monitor your export operations</p>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <StatCard
+                            title="Total Jobs"
+                            value={stats.totalJobs}
+                            icon={<JobsIcon />}
+                            color="blue"
+                        />
+                        <StatCard
+                            title="Success Rate"
+                            value={`${stats.successRate}%`}
+                            icon={<CheckIcon />}
+                            color="green"
+                        />
+                        <StatCard
+                            title="Avg Process Time"
+                            value={`${stats.avgProcessTime}s`}
+                            icon={<ClockIcon />}
+                            color="purple"
+                        />
+                        <StatCard
+                            title="Active Jobs"
+                            value={stats.activeJobs}
+                            icon={<PlayIcon />}
+                            color="orange"
+                        />
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-8 card-hover">
+                        <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+                        <div className="flex flex-wrap gap-3">
+                            <button 
+                                onClick={() => addNotification('New export job started', 'success')}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center space-x-2"
+                            >
+                                <PlusIcon />
+                                <span>New Export</span>
+                            </button>
+                            <button 
+                                onClick={() => addNotification('Cache cleared successfully', 'success')}
+                                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center space-x-2"
+                            >
+                                <RefreshIcon />
+                                <span>Clear Cache</span>
+                            </button>
+                            <button 
+                                onClick={() => addNotification('Test email sent', 'info')}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2"
+                            >
+                                <MailIcon />
+                                <span>Test Notification</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Recent Jobs */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <h3 className="text-xl font-semibold mb-4">Recent Jobs</h3>
+                        <div className="space-y-3">
+                            {recentJobs.map(job => (
+                                <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center space-x-3">
+                                        <StatusBadge status={job.status} />
+                                        <div>
+                                            <p className="font-medium">{job.name}</p>
+                                            <p className="text-sm text-gray-500">{job.time}</p>
+                                        </div>
+                                    </div>
+                                    <button className="text-purple-600 hover:text-purple-800 transition">
+                                        View Details →
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function JobsPage({ addNotification }) {
+            const [jobs, setJobs] = useState([
+                { 
+                    id: 'JOB-001', 
+                    name: 'Addressable Display Report',
+                    status: 'completed',
+                    progress: 100,
+                    startTime: '2024-01-20 10:30',
+                    duration: '45s',
+                    files: 8,
+                    downloadUrl: '#'
+                },
+                { 
+                    id: 'JOB-002', 
+                    name: 'Campaign Performance Export',
+                    status: 'processing',
+                    progress: 65,
+                    startTime: '2024-01-20 10:35',
+                    duration: '23s',
+                    files: 0,
+                    downloadUrl: null
+                },
+                { 
+                    id: 'JOB-003', 
+                    name: 'Call Tracking Data',
+                    status: 'queued',
+                    progress: 0,
+                    startTime: '-',
+                    duration: '-',
+                    files: 0,
+                    downloadUrl: null
+                }
+            ]);
+
+            return (
+                <div className="fade-in">
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-gray-800">Jobs & Queue</h2>
+                        <p className="text-gray-600 mt-2">Monitor and manage export jobs</p>
+                    </div>
+
+                    {/* Jobs Table */}
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job ID</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {jobs.map(job => (
+                                        <tr key={job.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {job.id}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {job.name}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <StatusBadge status={job.status} />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="w-32">
+                                                    <div className="flex items-center">
+                                                        <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                                                            <div 
+                                                                className={`h-2 rounded-full transition-all duration-500 ${
+                                                                    job.status === 'completed' ? 'bg-green-500' :
+                                                                    job.status === 'processing' ? 'bg-blue-500' :
+                                                                    job.status === 'failed' ? 'bg-red-500' :
+                                                                    'bg-gray-400'
+                                                                }`}
+                                                                style={{ width: `${job.progress}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-xs text-gray-600">{job.progress}%</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {job.startTime}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {job.duration}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {job.files > 0 ? `${job.files} files` : '-'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex space-x-2">
+                                                    {job.status === 'completed' && (
+                                                        <button 
+                                                            onClick={() => addNotification('Download started', 'info')}
+                                                            className="text-blue-600 hover:text-blue-800"
+                                                        >
+                                                            <DownloadIcon />
+                                                        </button>
+                                                    )}
+                                                    {job.status === 'processing' && (
+                                                        <button 
+                                                            onClick={() => addNotification('Job cancelled', 'warning')}
+                                                            className="text-red-600 hover:text-red-800"
+                                                        >
+                                                            <XIcon />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function SettingsPage({ addNotification }) {
+            const [settings, setSettings] = useState({
+                luminaUsername: 'admin@company.com',
+                luminaPassword: '••••••••',
+                reportTypes: [
+                    { id: 1, name: 'addressableDisplay', enabled: true },
+                    { id: 2, name: 'callPerformance', enabled: true },
+                    { id: 3, name: 'retargeting', enabled: false },
+                    { id: 4, name: 'searchMarketing', enabled: true },
+                ],
+                emailEnabled: true,
+                emailAddress: 'admin@company.com',
+                scheduleEnabled: true,
+                scheduleFrequency: 'daily',
+                scheduleTime: '09:00',
+            });
+
+            const handleSave = () => {
+                addNotification('Settings saved successfully', 'success');
+            };
+
+            return (
+                <div className="fade-in">
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-gray-800">Configuration</h2>
+                        <p className="text-gray-600 mt-2">Manage your export settings</p>
+                    </div>
+
+                    {/* Authentication Settings */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
+                        <h3 className="text-xl font-semibold mb-4">Lumina Authentication</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Username
+                                </label>
+                                <input
+                                    type="email"
+                                    value={settings.luminaUsername}
+                                    onChange={(e) => setSettings({...settings, luminaUsername: e.target.value})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    value={settings.luminaPassword}
+                                    onChange={(e) => setSettings({...settings, luminaPassword: e.target.value})}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Report Types */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
+                        <h3 className="text-xl font-semibold mb-4">Report Types</h3>
+                        <div className="space-y-3">
+                            {settings.reportTypes.map(type => (
+                                <div key={type.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center space-x-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={type.enabled}
+                                            onChange={(e) => {
+                                                const updated = settings.reportTypes.map(t =>
+                                                    t.id === type.id ? {...t, enabled: e.target.checked} : t
+                                                );
+                                                setSettings({...settings, reportTypes: updated});
+                                            }}
+                                            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                        />
+                                        <span className="font-medium">{type.name}</span>
+                                    </div>
+                                    <button className="text-purple-600 hover:text-purple-800">
+                                        <EditIcon />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Email Notifications */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
+                        <h3 className="text-xl font-semibold mb-4">Notifications</h3>
+                        <div className="flex items-center justify-between">
+                            <label className="flex items-center space-x-3">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.emailEnabled}
+                                    onChange={(e) => setSettings({...settings, emailEnabled: e.target.checked})}
+                                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                />
+                                <span>Email Notifications</span>
+                            </label>
+                            <input
+                                type="email"
+                                value={settings.emailAddress}
+                                onChange={(e) => setSettings({...settings, emailAddress: e.target.value})}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                disabled={!settings.emailEnabled}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Schedule Settings */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6 card-hover">
+                        <h3 className="text-xl font-semibold mb-4">Schedule</h3>
+                        <div className="flex items-center space-x-4">
+                            <label className="flex items-center space-x-3">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.scheduleEnabled}
+                                    onChange={(e) => setSettings({...settings, scheduleEnabled: e.target.checked})}
+                                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                                />
+                                <span>Enable Scheduled Exports</span>
+                            </label>
+                            <select 
+                                value={settings.scheduleFrequency}
+                                onChange={(e) => setSettings({...settings, scheduleFrequency: e.target.value})}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                disabled={!settings.scheduleEnabled}
+                            >
+                                <option value="hourly">Hourly</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                            <input
+                                type="time"
+                                value={settings.scheduleTime}
+                                onChange={(e) => setSettings({...settings, scheduleTime: e.target.value})}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                disabled={!settings.scheduleEnabled}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex justify-end">
+                        <button 
+                            onClick={handleSave}
+                            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition duration-200 flex items-center space-x-2"
+                        >
+                            <SaveIcon />
+                            <span>Save All Settings</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function StatCard({ title, value, icon, color }) {
+            const colorClasses = {
+                blue: 'from-blue-500 to-blue-600',
+                green: 'from-green-500 to-green-600',
+                purple: 'from-purple-500 to-purple-600',
+                orange: 'from-orange-500 to-orange-600',
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-lg p-6 card-hover">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">{title}</p>
+                            <p className="text-3xl font-bold text-gray-800 mt-2">{value}</p>
+                        </div>
+                        <div className={`p-3 rounded-lg bg-gradient-to-br ${colorClasses[color]} text-white`}>
+                            {icon}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function StatusBadge({ status }) {
+            const statusStyles = {
+                completed: 'bg-green-100 text-green-800',
+                processing: 'bg-blue-100 text-blue-800',
+                queued: 'bg-yellow-100 text-yellow-800',
+                failed: 'bg-red-100 text-red-800',
+                cancelled: 'bg-gray-100 text-gray-800',
+            };
+
+            return (
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
+                    {status}
+                </span>
+            );
+        }
+
+        function NotificationContainer({ notifications }) {
+            return (
+                <div className="fixed top-4 right-4 z-50 space-y-2">
+                    {notifications.map(notification => (
+                        <div
+                            key={notification.id}
+                            className={`slide-in px-4 py-3 rounded-lg shadow-lg text-white ${
+                                notification.type === 'success' ? 'bg-green-500' :
+                                notification.type === 'error' ? 'bg-red-500' :
+                                notification.type === 'warning' ? 'bg-orange-500' :
+                                'bg-blue-500'
+                            }`}
+                        >
+                            {notification.message}
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+
+    </script>
+</body>
+</html>EOF
+
+
